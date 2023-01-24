@@ -27,16 +27,16 @@ netconfig_file="./netconfig.conf"
 
 # Read the variables from the network configuration file
 while read line; do
-  if [[ $line == spoofed_device* ]]; then
-    spoofed_device="${line#*=}"
-  elif [[ $line == spoofed_wlan_gateway* ]]; then
-    spoofed_wlan_gateway="${line#*=}"
-  elif [[ $line == spoofed_wlan_network* ]]; then
-    spoofed_wlan_network="${line#*=}"
-  elif [[ $line == spoofed_wlan_netmask* ]]; then
-    spoofed_wlan_netmask="${line#*=}"
-  elif [[ $line == out_device* ]]; then
-    out_device="${line#*=}"
+  if [[ $line == my_wifi_device* ]]; then
+    my_wifi_device="${line#*=}"
+  elif [[ $line == my_wlan_gateway_ip* ]]; then
+    my_wlan_gateway_ip="${line#*=}"
+  elif [[ $line == my_wlan_network* ]]; then
+    my_wlan_network="${line#*=}"
+  elif [[ $line == my_wlan_netmask* ]]; then
+    my_wlan_netmask="${line#*=}"
+  elif [[ $line == network_connected_device* ]]; then
+    network_connected_device="${line#*=}"
   elif [[ $line == proxy_ip* ]]; then
     proxy_ip="${line#*=}"
   fi
@@ -45,18 +45,18 @@ done < "$netconfig_file"
 echo "Configuring..."
 
 # Set the network configuration for the wireless device
-ifconfig $spoofed_device $spoofed_wlan_gateway netmask $spoofed_wlan_netmask
+ifconfig $my_wifi_device $my_wlan_gateway_ip netmask $my_wlan_netmask
 
 # Flush the current network address translation table
 iptables -t nat -F
 
 # Make outgoing traffic appear to originate from output device
-iptables -t nat -A POSTROUTING -o $out_device -j MASQUERADE
+iptables -t nat -A POSTROUTING -o $network_connected_device -j MASQUERADE
 
 # Proxy forwarding HTTP/S traffic
 # Must use an invisible proxy
-iptables -t nat -A PREROUTING -s $spoofed_wlan_network -p tcp --dport 80 -j DNAT --to $proxy_ip:80
-iptables -t nat -A PREROUTING -s $spoofed_wlan_network -p tcp --dport 443 -j DNAT --to $proxy_ip:443
+iptables -t nat -A PREROUTING -s $my_wlan_network -p tcp --dport 80 -j DNAT --to $proxy_ip:80
+iptables -t nat -A PREROUTING -s $my_wlan_network -p tcp --dport 443 -j DNAT --to $proxy_ip:443
 
 # Build the hostapd configuration file
 echo "ssid=$ssid" > runtime_hostapd.conf
